@@ -22,15 +22,18 @@
 const char* ssid = "Eric";
 const char* password = "qh0hfdvvjpw63";
 
-//const char* ssid = "CDPIphone";
-//const char* password = "2018Tiguan";
-
 void startCameraServer();
 
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println();
+
+  // MPWM setup
+  ledcSetup(3, 5000, 8);
+  ledcAttachPin(MPWM_LEFT, 3);
+  ledcSetup(2, 5000, 8);
+  ledcAttachPin(MPWM_RIGHT, 2);
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;

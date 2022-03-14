@@ -594,47 +594,72 @@ static esp_err_t index_handler(httpd_req_t *req){
 }
 
 static esp_err_t control_handler(httpd_req_t *req) {
-    // Parse JSON from request
-    Serial.println("control_handler");
-
-    char content[100];
-
-    /* Truncate if content length larger than the buffer */
+    char content[500];
     size_t recv_size = min(req->content_len, sizeof(content));
 
     int ret = httpd_req_recv(req, content, recv_size);
-    if (ret <= 0) {  /* 0 return value indicates connection closed */
-        /* Check if timeout occurred */
+    if (ret <= 0) {
         if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-            /* In case of timeout one can choose to retry calling
-             * httpd_req_recv(), but to keep it simple, here we
-             * respond with an HTTP 408 (Request Timeout) error */
             httpd_resp_send_408(req);
         }
-        /* In case of error, returning ESP_FAIL will
-         * ensure that the underlying socket is closed */
         return ESP_FAIL;
     }
 
     Serial.println(recv_size);
     Serial.println(content);
 
-    StaticJsonDocument<200> doc;
+    StaticJsonDocument<500> doc;
     deserializeJson(doc, content);
 
     int width = doc["frame"]["width"];
     int height = doc["frame"]["height"];
-    int left = doc["position"]["left"];
-    int top = doc["position"]["top"];
-    bool in_center = doc["in_center"];
+    
+    int laser_left = doc["laser"]["position"]["left"];
+    int laser_top = doc["laser"]["position"]["top"];
+    
+    int center_width = doc["center"]["width"];
+    int center_left_line = doc["center"]["left_line"];
+    int center_right_line = doc["center"]["right_line"];
 
-    Serial.println(left);
-    Serial.println(top);
-    Serial.println(in_center);
+    int landmine_left = doc["nearest_landmine"]["position"]["left"];
+    int landmine_top = doc["nearest_landmine"]["position"]["top"];
+
+    pinMode(MDIR_LEFT, OUTPUT);
+    pinMode(MDIR_RIGHT, OUTPUT);
+    pinMode(LANDMINE, OUTPUT);
+
+    if (laser_left == 0 && laser_top == 0) {
+      Serial.println("laser not detected -> don't move + don't turn");
+      digitalWrite(MDIR_LEFT, LOW);
+      digitalWrite(MDIR_RIGHT, LOW);
+      ledcWrite(3, 0);
+      ledcWrite(2, 0);
+    } else if (laser_left < center_left_line) {
+      Serial.println("turn left -> MPWM_LEFT high, MPWM_RIGHT low");
+      digitalWrite(MDIR_LEFT, LOW);
+      digitalWrite(MDIR_RIGHT, HIGH);
+      ledcWrite(3, 0);
+      ledcWrite(2, 150);
+    } else if (laser_left > center_right_line) {
+      Serial.println("turn right -> MPWM_LEFT low, MPWM_RIGHT high");
+      digitalWrite(MDIR_LEFT, HIGH);
+      digitalWrite(MDIR_RIGHT, LOW);
+      ledcWrite(3, 150);
+      ledcWrite(2, 0);
+    } else {
+      Serial.println("in center -> move forward + don't turn");
+      digitalWrite(MDIR_LEFT, HIGH);
+      digitalWrite(MDIR_RIGHT, HIGH);
+      ledcWrite(3, 150);
+      ledcWrite(2, 150);
+    }
+
+    if (landmine_left != 0 && landmine_top != 0) {
+      digitalWrite(LANDMINE, HIGH);
+    } else {
+      digitalWrite(LANDMINE, LOW);
+    }
     
-    
-    /* Send a simple response */
-    //const char resp = content;
     httpd_resp_send(req, content, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 
@@ -646,12 +671,6 @@ static esp_err_t control_handler(httpd_req_t *req) {
     //delay(1000);
     //ledcWrite(0, 0);
     //digitalWrite(LIGHT, LOW);
-
-    // Return an OK response if there's no problems
-    //return ESP_OK;
-
-    // Return a bad response if there is a problem
-    // return ESP_FAIL;
 }
 
 void startCameraServer(){

@@ -132,6 +132,12 @@
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
+#define MPWM_LEFT         12
+#define MPWM_RIGHT        13
+#define MDIR_LEFT         14
+#define MDIR_RIGHT        15
+
+#define LANDMINE          2
 #define LIGHT             4
 
 #elif defined(CAMERA_MODEL_TTGO_T_JOURNAL)
