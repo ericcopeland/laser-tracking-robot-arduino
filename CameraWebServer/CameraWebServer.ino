@@ -25,9 +25,13 @@ const char* password = "qh0hfdvvjpw63";
 void startCameraServer();
 
 void setup() {
+  Serial1.begin(9600, SERIAL_8N1, 3, 1);
+  
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println();
+
+  // Ultrasonic setup
 
   // MPWM setup
   ledcSetup(3, 5000, 8);

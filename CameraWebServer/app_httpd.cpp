@@ -593,6 +593,68 @@ static esp_err_t index_handler(httpd_req_t *req){
     return httpd_resp_send(req, (const char *)index_ov2640_html_gz, index_ov2640_html_gz_len);
 }
 
+int distance = 0;
+
+const byte numChars = 32;
+char receivedChars[numChars];
+
+boolean newData = false;
+
+void recvWithEndMarker() {
+    static byte ndx = 0;
+    char endMarker = '\n';
+    char rc;
+    
+    if (Serial1.available() > 0) {
+        rc = Serial1.read();
+
+        if (rc != endMarker) {
+            receivedChars[ndx] = rc;
+            ndx++;
+            if (ndx >= numChars) {
+                ndx = numChars - 1;
+            }
+        }
+        else {
+            receivedChars[ndx] = '\0'; // terminate the string
+            ndx = 0;
+            newData = true;
+        }
+    }
+}
+
+
+void recvWithStartEndMarkers() {
+    static boolean recvInProgress = false;
+    static byte ndx = 0;
+    char startMarker = '{';
+    char endMarker = '\n';
+    char rc;
+ 
+    while (Serial1.available() > 0) {
+        rc = Serial1.read();
+
+        if (recvInProgress == true) {
+            if (rc != endMarker) {
+                receivedChars[ndx] = rc;
+                ndx++;
+                if (ndx >= numChars) {
+                    ndx = numChars - 1;
+                }
+            }
+            else {
+                receivedChars[ndx] = '\0'; // terminate the string
+                recvInProgress = false;
+                ndx = 0;
+            }
+        }
+
+        else if (rc == startMarker) {
+            recvInProgress = true;
+        }
+    }
+}
+
 static esp_err_t control_handler(httpd_req_t *req) {
     char content[500];
     size_t recv_size = min(req->content_len, sizeof(content));
@@ -604,9 +666,6 @@ static esp_err_t control_handler(httpd_req_t *req) {
         }
         return ESP_FAIL;
     }
-
-    Serial.println(recv_size);
-    Serial.println(content);
 
     StaticJsonDocument<500> doc;
     deserializeJson(doc, content);
@@ -623,35 +682,40 @@ static esp_err_t control_handler(httpd_req_t *req) {
 
     int landmine_left = doc["nearest_landmine"]["position"]["left"];
     int landmine_top = doc["nearest_landmine"]["position"]["top"];
+    
+    //recvWithEndMarker();
+    recvWithStartEndMarkers();
+    distance = atoi(receivedChars);
+    String output = "distance=" + String(distance);
+
+    Serial.println(distance);
+    Serial.println(output);
+    Serial.println("help");
 
     pinMode(MDIR_LEFT, OUTPUT);
     pinMode(MDIR_RIGHT, OUTPUT);
     pinMode(LANDMINE, OUTPUT);
 
     if (laser_left == 0 && laser_top == 0) {
-      Serial.println("laser not detected -> don't move + don't turn");
       digitalWrite(MDIR_LEFT, LOW);
       digitalWrite(MDIR_RIGHT, LOW);
       ledcWrite(3, 0);
       ledcWrite(2, 0);
     } else if (laser_left < center_left_line) {
-      Serial.println("turn left -> MPWM_LEFT high, MPWM_RIGHT low");
       digitalWrite(MDIR_LEFT, LOW);
       digitalWrite(MDIR_RIGHT, HIGH);
       ledcWrite(3, 0);
-      ledcWrite(2, 150);
+      ledcWrite(2, 220);
     } else if (laser_left > center_right_line) {
-      Serial.println("turn right -> MPWM_LEFT low, MPWM_RIGHT high");
       digitalWrite(MDIR_LEFT, HIGH);
       digitalWrite(MDIR_RIGHT, LOW);
-      ledcWrite(3, 150);
+      ledcWrite(3, 220);
       ledcWrite(2, 0);
     } else {
-      Serial.println("in center -> move forward + don't turn");
       digitalWrite(MDIR_LEFT, HIGH);
       digitalWrite(MDIR_RIGHT, HIGH);
-      ledcWrite(3, 150);
-      ledcWrite(2, 150);
+      ledcWrite(3, 200);
+      ledcWrite(2, 200);
     }
 
     if (landmine_left != 0 && landmine_top != 0) {
@@ -660,7 +724,7 @@ static esp_err_t control_handler(httpd_req_t *req) {
       digitalWrite(LANDMINE, LOW);
     }
     
-    httpd_resp_send(req, content, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send(req, output.c_str(), HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 
     // Set motors based on request values (do NOT use delay())

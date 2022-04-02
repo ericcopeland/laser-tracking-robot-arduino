@@ -132,9 +132,14 @@
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
-#define MPWM_LEFT         12
-#define MPWM_RIGHT        13
-#define MDIR_LEFT         14
+//#define MPWM_LEFT         15
+//#define MPWM_RIGHT        12
+//#define MDIR_LEFT         14
+//#define MDIR_RIGHT        13
+
+#define MPWM_LEFT         13
+#define MPWM_RIGHT        14
+#define MDIR_LEFT         12
 #define MDIR_RIGHT        15
 
 #define LANDMINE          2
