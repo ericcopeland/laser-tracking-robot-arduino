@@ -58,7 +58,8 @@ void setup() {
   config.pin_sscb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 20000000;
+  //config.xclk_freq_hz = 20000000;
+  config.xclk_freq_hz = 10000000;
   config.pixel_format = PIXFORMAT_JPEG;
   
   // if PSRAM IC present, init with UXGA resolution and higher JPEG quality
@@ -116,7 +117,15 @@ void setup() {
   Serial.println("' to connect");
 }
 
+const int MAX_DELAY_MS = 1000;
+
 void loop() {
   // put your main code here, to run repeatedly:
-  delay(10000);
+  delay(100);
+
+  if (millis() > LAST_REQUEST_TIMESTAMP + MAX_DELAY_MS) {
+      ledcWrite(3, 0);
+      ledcWrite(2, 0);
+      digitalWrite(LANDMINE, LOW);
+  }
 }

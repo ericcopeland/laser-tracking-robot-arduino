@@ -138,12 +138,14 @@
 //#define MDIR_RIGHT        13
 
 #define MPWM_LEFT         13
-#define MPWM_RIGHT        14
-#define MDIR_LEFT         12
+#define MPWM_RIGHT        12
+#define MDIR_LEFT         14
 #define MDIR_RIGHT        15
 
 #define LANDMINE          2
 #define LIGHT             4
+
+extern long LAST_REQUEST_TIMESTAMP;
 
 #elif defined(CAMERA_MODEL_TTGO_T_JOURNAL)
 #define PWDN_GPIO_NUM      0

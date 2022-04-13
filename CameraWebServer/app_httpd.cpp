@@ -655,6 +655,8 @@ void recvWithStartEndMarkers() {
     }
 }
 
+long LAST_REQUEST_TIMESTAMP = 0;
+
 static esp_err_t control_handler(httpd_req_t *req) {
     char content[500];
     size_t recv_size = min(req->content_len, sizeof(content));
@@ -669,6 +671,8 @@ static esp_err_t control_handler(httpd_req_t *req) {
 
     StaticJsonDocument<500> doc;
     deserializeJson(doc, content);
+
+    LAST_REQUEST_TIMESTAMP = millis();
 
     int width = doc["frame"]["width"];
     int height = doc["frame"]["height"];
@@ -688,14 +692,49 @@ static esp_err_t control_handler(httpd_req_t *req) {
     distance = atoi(receivedChars);
     String output = "distance=" + String(distance);
 
-    Serial.println(distance);
-    Serial.println(output);
-    Serial.println("help");
-
     pinMode(MDIR_LEFT, OUTPUT);
     pinMode(MDIR_RIGHT, OUTPUT);
     pinMode(LANDMINE, OUTPUT);
 
+    
+    int max_speed = 240;
+    int min_speed = 0;
+    int speed_diff = max_speed - min_speed;
+
+    int center = width / 2;
+    //double error = abs(center - laser_left);
+    //int turn_speed = (error / center) * speed_diff;
+
+
+    if ((laser_left == 0 && laser_top == 0) || distance <= 15) {
+      digitalWrite(MDIR_LEFT, LOW);
+      digitalWrite(MDIR_RIGHT, LOW);
+      ledcWrite(3, 0);
+      ledcWrite(2, 0);
+    } else if (laser_left < center_left_line) {
+      digitalWrite(MDIR_LEFT, LOW);
+      digitalWrite(MDIR_RIGHT, HIGH);
+      double error = abs(center_left_line - laser_left);
+      int turn_speed = (error / center_left_line) * speed_diff;
+      Serial.println(String(max_speed - turn_speed));
+      ledcWrite(3, max_speed - turn_speed);
+      ledcWrite(2, max_speed);
+    } else if (laser_left > center_right_line) {
+      digitalWrite(MDIR_LEFT, HIGH);
+      digitalWrite(MDIR_RIGHT, LOW);
+      double error = abs(center_left_line - laser_left);
+      int turn_speed = (error / center_left_line) * speed_diff;
+      Serial.println(String(max_speed - turn_speed));
+      ledcWrite(3, max_speed);
+      ledcWrite(2, max_speed - turn_speed);
+    } else {
+      digitalWrite(MDIR_LEFT, HIGH);
+      digitalWrite(MDIR_RIGHT, HIGH);
+      ledcWrite(3, max_speed);
+      ledcWrite(2, max_speed);
+    }
+
+    /*
     if (laser_left == 0 && laser_top == 0) {
       digitalWrite(MDIR_LEFT, LOW);
       digitalWrite(MDIR_RIGHT, LOW);
@@ -716,9 +755,16 @@ static esp_err_t control_handler(httpd_req_t *req) {
       digitalWrite(MDIR_RIGHT, HIGH);
       ledcWrite(3, 200);
       ledcWrite(2, 200);
-    }
+    }*/
 
+    /*
     if (landmine_left != 0 && landmine_top != 0) {
+      digitalWrite(LANDMINE, HIGH);
+    } else {
+      digitalWrite(LANDMINE, LOW);
+    }*/
+
+    if (laser_left != 0 && laser_top != 0) {
       digitalWrite(LANDMINE, HIGH);
     } else {
       digitalWrite(LANDMINE, LOW);
