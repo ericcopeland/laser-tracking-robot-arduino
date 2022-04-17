@@ -655,6 +655,16 @@ void recvWithStartEndMarkers() {
     }
 }
 
+void setMotors(int MDIR_LEFT_VAL, int MDIR_RIGHT_VAL, int MPWM_LEFT_VAL, int MPWM_RIGHT_VAL) {
+  int MPWM_LEFT_CHANNEL = 3;
+  int MPWM_RIGHT_CHANNEL = 2;
+
+  digitalWrite(MDIR_LEFT, MDIR_LEFT_VAL);
+  digitalWrite(MDIR_RIGHT, MDIR_RIGHT_VAL);
+  ledcWrite(MPWM_LEFT_CHANNEL, MPWM_LEFT_VAL);
+  ledcWrite(MPWM_RIGHT_CHANNEL, MPWM_RIGHT_VAL);
+}
+
 long LAST_REQUEST_TIMESTAMP = 0;
 
 static esp_err_t control_handler(httpd_req_t *req) {
@@ -696,9 +706,62 @@ static esp_err_t control_handler(httpd_req_t *req) {
     pinMode(MDIR_RIGHT, OUTPUT);
     pinMode(LANDMINE, OUTPUT);
 
-    
-    int max_speed = 240;
-    int min_speed = 0;
+    int row_height = height / 2;
+    int col_width = width / 9;
+   
+    int row = (int)(laser_top / row_height);
+    int col = (int)(laser_left / col_width);
+
+    Serial.println(row);
+    Serial.println(col);
+   
+    if ((laser_left == 0 && laser_top == 0) || distance <= 15) {
+        setMotors(1, 1, 0, 0);
+    } else if (row == 0 & col == 0) {
+        setMotors(0, 1, 200, 200);
+    } else if (row == 0 && col == 1) {
+        setMotors(0, 1, 180, 200);
+    } else if (row == 0 && col == 2) {
+        setMotors(0, 1, 180, 200);
+    } else if (row == 0 && col == 3) {
+        setMotors(1, 1, 200, 220);
+    } else if (row == 0 && col == 4) {
+        setMotors(1, 1, 220, 220);
+    } else if (row == 0 && col == 5) {
+        setMotors(1, 1, 220, 200);
+    } else if (row == 0 && col == 6) {
+        setMotors(1, 0, 200, 180);
+    } else if (row == 0 && col == 7) {
+        setMotors(1, 0, 200, 180);
+    } else if (row == 0 && col == 8) {
+        setMotors(1, 0, 200, 200);
+    } else if (row == 0 && col == 9) {
+        setMotors(1, 0, 200, 200);
+    } else if (row == 1 && col == 0) {
+        setMotors(0, 1, 220, 220);
+    } else if (row == 1 && col == 1) {
+        setMotors(0, 1, 200, 200);
+    } else if (row == 1 && col == 2) {
+        setMotors(0, 1, 180, 180);
+    } else if (row == 1 && col == 3) {
+        setMotors(1, 1, 180, 200);
+    } else if (row == 1 && col == 4) {
+        setMotors(1, 1, 200, 200);
+    } else if (row == 1 && col == 5) {
+        setMotors(1, 1, 200, 180);
+    } else if (row == 1 && col == 6) {
+        setMotors(1, 0, 180, 180);
+    } else if (row == 1 && col == 7) {
+        setMotors(1, 0, 200, 200);
+    } else if (row == 1 && col == 8) {
+        setMotors(1, 0, 220, 220);
+    } else if (row == 1 && col == 9) {
+        setMotors(1, 0, 220, 220);
+    }
+
+    /*
+    int max_speed = 220;
+    int min_speed = 170;
     int speed_diff = max_speed - min_speed;
 
     int center = width / 2;
@@ -722,7 +785,7 @@ static esp_err_t control_handler(httpd_req_t *req) {
     } else if (laser_left > center_right_line) {
       digitalWrite(MDIR_LEFT, HIGH);
       digitalWrite(MDIR_RIGHT, LOW);
-      double error = abs(center_left_line - laser_left);
+      double error = abs(center_right_line - laser_left);
       int turn_speed = (error / center_left_line) * speed_diff;
       Serial.println(String(max_speed - turn_speed));
       ledcWrite(3, max_speed);
@@ -732,7 +795,7 @@ static esp_err_t control_handler(httpd_req_t *req) {
       digitalWrite(MDIR_RIGHT, HIGH);
       ledcWrite(3, max_speed);
       ledcWrite(2, max_speed);
-    }
+    }*/
 
     /*
     if (laser_left == 0 && laser_top == 0) {
